@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: mdt-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./backend/Dockerfile
+    autoDeploy: true
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: PIPELINE_MODE
+        value: real
+      - key: MAX_WORKERS
+        value: 1
+      - key: USE_GPU
+        value: false
+      - key: WHISPER_MODEL
+        value: medium
+      - key: NLLB_MODEL
+        value: facebook/nllb-200-distilled-600M
+      - key: COQUI_MODEL
+        value: tts_models/multilingual/multi-dataset/xtts_v2
+      - key: WAV2LIP_REPO
+        value: /app/models/Wav2Lip
+      - key: WAV2LIP_CHECKPOINT
+        value: /app/models/wav2lip/wav2lip_gan.pth
+      - key: WAV2LIP_PYTHON_BIN
+        value: python
+      - key: CORS_ORIGINS_CSV
+        sync: false
+    disk:
+      name: mdt-models
+      mountPath: /app/models
+      sizeGB: 40
+
+  - type: web
+    name: mdt-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false

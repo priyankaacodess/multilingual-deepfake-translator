@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: mdt-backend
+    environment:
+      PIPELINE_MODE: ${PIPELINE_MODE:-mock}
+      MAX_WORKERS: ${MAX_WORKERS:-2}
+      USE_GPU: ${USE_GPU:-false}
+      WHISPER_MODEL: ${WHISPER_MODEL:-medium}
+      NLLB_MODEL: ${NLLB_MODEL:-facebook/nllb-200-distilled-600M}
+      COQUI_MODEL: ${COQUI_MODEL:-tts_models/multilingual/multi-dataset/xtts_v2}
+      WAV2LIP_REPO: ${WAV2LIP_REPO:-models/Wav2Lip}
+      WAV2LIP_CHECKPOINT: ${WAV2LIP_CHECKPOINT:-models/wav2lip/wav2lip_gan.pth}
+      WAV2LIP_PYTHON_BIN: ${WAV2LIP_PYTHON_BIN:-python}
+      CORS_ORIGINS_CSV: ${CORS_ORIGINS_CSV:-http://localhost:5173,http://localhost:3000}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+      - ./models:/app/models
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: mdt-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
