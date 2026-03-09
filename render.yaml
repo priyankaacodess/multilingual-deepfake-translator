@@ -2,7 +2,7 @@ services:
   - type: web
     name: mdt-backend
     runtime: docker
-    rootDir: backend
+    dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     autoDeploy: true
     healthCheckPath: /api/v1/health
@@ -35,8 +35,7 @@ services:
   - type: web
     name: mdt-frontend
     runtime: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL

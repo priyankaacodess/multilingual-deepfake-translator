@@ -1,39 +1,54 @@
 # Multilingual Deepfake Translator
 
-Real-time style multilingual video translation pipeline with lip sync:
-- ASR: Whisper
-- Translation: Fairseq/HuggingFace NLLB-200
-- TTS: Coqui XTTS v2
-- Lip Sync: Wav2Lip
-- Product surface: FastAPI backend + React frontend
+AI video dubbing pipeline with multilingual translation and lip synchronization.
 
-This repo is built for recruiter demos and portfolio use. It supports **real mode** (actual model inference) and **mock mode** (fast smoke tests).
+[![CI](https://github.com/priyankaacodess/multilingual-deepfake-translator/actions/workflows/ci.yml/badge.svg)](https://github.com/priyankaacodess/multilingual-deepfake-translator/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
 
-## Project structure
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/priyankaacodess/multilingual-deepfake-translator)
 
-```text
-backend/         FastAPI API + async job pipeline
-frontend/        React + Vite web UI
-scripts/         setup/bootstrap helpers
-.github/         CI workflow
-```
+## Why this project
+
+This project turns a talking-head video into a translated video in another language:
+- Transcribe speech with Whisper
+- Translate with NLLB-200
+- Generate target speech with Coqui XTTS
+- Sync lip movements with Wav2Lip
+- Serve as a testable product via FastAPI + React
+
+## Demo
+
+- Local UI: `http://localhost:5173`
+- API Health: `http://localhost:8000/api/v1/health`
+- Add your demo GIF here after first successful run: `assets/demo.gif`
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  A[Upload video] --> B[FastAPI job API]
-  B --> C[Extract audio with ffmpeg]
+  A[Upload Video] --> B[FastAPI Job API]
+  B --> C[ffmpeg Audio Extraction]
   C --> D[Whisper ASR]
-  D --> E[NLLB-200 translation]
-  E --> F[Coqui XTTS speech]
-  F --> G[Wav2Lip inference]
-  G --> H[Translated synced video output]
-  B --> I[Job polling endpoint]
-  I --> J[React dashboard]
+  D --> E[NLLB-200 Translation]
+  E --> F[Coqui XTTS]
+  F --> G[Wav2Lip]
+  G --> H[Output Video]
+  B --> I[Job Polling]
+  I --> J[React Dashboard]
 ```
 
-## Quickstart (real mode)
+## Tech stack
+
+- Backend: FastAPI, Pydantic, async job executor
+- Frontend: React + Vite + TypeScript
+- ASR: OpenAI Whisper
+- Translation: Fairseq/HuggingFace NLLB-200
+- TTS: Coqui XTTS v2
+- Lip sync: Wav2Lip
+- Infra: Docker, GitHub Actions, Render blueprint
+
+## Local setup (real mode)
 
 1. Bootstrap base dependencies:
 
@@ -48,125 +63,98 @@ source .venv/bin/activate
 pip install -r backend/requirements-ml.txt
 ```
 
-3. Ensure ffmpeg is installed:
-
-```bash
-ffmpeg -version
-```
-
-4. Install Wav2Lip repo/checkpoint:
+3. Install Wav2Lip assets:
 
 ```bash
 ./scripts/setup_wav2lip.sh
 ```
 
-5. Start backend:
+4. Start backend:
 
 ```bash
-source .venv/bin/activate
 cd backend
+source ../.venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-6. Start frontend (new terminal):
+5. Start frontend (new terminal):
 
 ```bash
 cd frontend
+source ~/.zshrc
 cp .env.example .env
 npm run dev
 ```
 
-7. Open `http://localhost:5173` and upload a short video.
+6. Open `http://localhost:5173`
 
-If the page does not load:
-- confirm frontend terminal prints `VITE ... ready` and `http://localhost:5173/`
-- run `lsof -iTCP:5173 -sTCP:LISTEN -nP` and verify a Node process is listening
-- restart terminal and run `source ~/.zshrc` once
+## Run in mock mode (fast smoke test)
 
-## Mode switching
+Edit `.env`:
 
-- `.env` defaults to `PIPELINE_MODE=real`.
-- For smoke tests, set `PIPELINE_MODE=mock` and restart backend.
-- Set `USE_GPU=true` only on a CUDA-capable machine.
-
-Notes for real mode:
-- First run will download Whisper/NLLB/Coqui weights.
-- Real-time latency depends heavily on GPU and input resolution.
-- For near real-time, keep input around `480p`, use CUDA, and batch frames.
-
-## API endpoints
-
-- `GET /api/v1/health`
-- `GET /api/v1/languages`
-- `POST /api/v1/jobs` (multipart: `video`, `source_language`, `target_language`, optional `speaker_wav`)
-- `GET /api/v1/jobs/{job_id}`
-- `GET /api/v1/jobs/{job_id}/download`
-
-## Docker
-
-```bash
-docker compose up --build
+```env
+PIPELINE_MODE=mock
 ```
 
-Frontend: `http://localhost:5173`
-Backend: `http://localhost:8000/api/v1/health`
+Restart backend after changing mode.
 
-This Docker image includes ML dependencies by default and runs real mode when `.env` has `PIPELINE_MODE=real`.
+## One-click deployment
 
-## GitHub publishing
+Use the Deploy to Render button above, or:
 
-1. Create a new GitHub repo.
-2. Run:
+1. Push repo to GitHub.
+2. In Render, create a Blueprint from this repo (`render.yaml`).
+3. Set environment variables after first deploy:
+- Frontend: `VITE_API_URL=https://<your-backend>.onrender.com/api/v1`
+- Backend: `CORS_ORIGINS_CSV=https://<your-frontend>.onrender.com`
+4. Upload Wav2Lip artifacts on backend disk:
+- `/app/models/Wav2Lip`
+- `/app/models/wav2lip/wav2lip_gan.pth`
+
+## Create a demo GIF for GitHub
+
+After generating an output video, run:
 
 ```bash
-git init
-git checkout -b codex/multilingual-deepfake-translator
-git add .
-git commit -m "Initial full-stack multilingual deepfake translator"
-git remote add origin <YOUR_GITHUB_REPO_URL>
-git push -u origin codex/multilingual-deepfake-translator
+./scripts/make_demo_gif.sh storage/outputs/<job-id>.mp4 assets/demo.gif 960
 ```
 
-3. Open PR to `main` or set this branch as default.
+## Repo structure
 
-## Deployment (frontend + backend)
+```text
+backend/         FastAPI app + pipeline
+frontend/        React web app
+scripts/         bootstrap + setup helpers
+.github/         CI workflow
+render.yaml      one-click Render blueprint
+```
 
-### Option A: Render Blueprint (single repo, easiest)
+## Resume-ready one-liner
 
-1. Push this repo to GitHub.
-2. In Render, create a new Blueprint and point to this repo.
-3. Render will read `render.yaml` and create:
-- `mdt-backend` Docker web service
-- `mdt-frontend` static web service
-4. After first deploy:
-- set frontend env `VITE_API_URL` to `https://<your-backend-service>.onrender.com/api/v1`
-- set backend env `CORS_ORIGINS_CSV` to your frontend URL `https://<your-frontend-service>.onrender.com`
-5. On backend disk, upload:
-- Wav2Lip repo at `/app/models/Wav2Lip`
-- checkpoint at `/app/models/wav2lip/wav2lip_gan.pth`
+Built a production-style multilingual video dubbing system using Whisper, NLLB-200, Coqui XTTS, and Wav2Lip with a deployable FastAPI + React interface for end-user testing.
 
-### Option B: Vercel + GPU backend
+## Troubleshooting
 
-1. Deploy frontend on Vercel from `frontend/`.
-2. Deploy backend on a GPU-capable provider (RunPod/Modal/self-hosted VM) using `backend/Dockerfile`.
-3. Set `VITE_API_URL` to backend URL and `CORS_ORIGINS_CSV` to frontend URL.
+- `npm: command not found`
 
-Important:
-- Real Wav2Lip + TTS inference is resource-heavy; free tiers are usually too weak for near real-time.
+```bash
+echo 'export PATH="/opt/homebrew/opt/node@22/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
 
-## Portfolio positioning
+- `ERR_CONNECTION_REFUSED` on `localhost:5173`
+  - Frontend server is not running. Start `npm run dev` in `frontend/`.
 
-Use this concise pitch in your resume/project card:
+- CORS errors
+  - Set backend env `CORS_ORIGINS_CSV` to your frontend URL.
 
-> Built a production-style multilingual deepfake translator with Whisper ASR, NLLB-200 translation, Coqui XTTS voice synthesis, and Wav2Lip lip-sync rendering, exposed through a FastAPI + React product with asynchronous job orchestration and deployable Docker infrastructure.
+## Ethical use
 
-## Ethical usage
+Only process media with consent. Add watermarking, authentication, abuse monitoring, and content moderation before public release.
 
-Only process media with consent. Consider adding watermarking, user verification, and abuse prevention before public release.
-
-## Technical references
+## References
 
 - Whisper: https://github.com/openai/whisper
-- NLLB-200 model card: https://huggingface.co/facebook/nllb-200-distilled-600M
-- Coqui TTS docs: https://docs.coqui.ai/
+- NLLB-200: https://huggingface.co/facebook/nllb-200-distilled-600M
+- Coqui TTS: https://docs.coqui.ai/
 - Wav2Lip: https://github.com/Rudrabha/Wav2Lip
